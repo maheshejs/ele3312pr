@@ -102,11 +102,11 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	LCD_Begin();
-	HAL_Delay(20);
-	LCD_SetRotation(0);
-	LCD_FillScreen(BLACK);
-
+    LCD_Begin();
+    HAL_Delay(20);
+    LCD_SetRotation(0);
+    LCD_FillScreen(BLACK);
+    int counter  = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
