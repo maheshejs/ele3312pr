@@ -42,7 +42,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+volatile uint32_t pulse_width = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -182,10 +182,9 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-
+	HAL_SYSTICK_IRQHandler();
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-	HAL_SYSTICK_IRQHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -204,9 +203,14 @@ void SysTick_Handler(void)
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
-
+	  if ((TIM3->SR & TIM_SR_CC1IF) != 0)
+				TIM3->SR &= ~TIM_SR_CC1IF;
+		if ((TIM3->SR & TIM_SR_CC2IF) != 0)
+				pulse_width = TIM3->CCR2;
+		if ((TIM3->SR & TIM_SR_UIF) != 0)
+				TIM3->SR &= ~TIM_SR_UIF;
   /* USER CODE END TIM3_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim3);
+  //HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
 
   /* USER CODE END TIM3_IRQn 1 */

@@ -1,12 +1,12 @@
 --cpu=Cortex-M4.fp.sp
 "project\startup_stm32f446xx.o"
+"project\mcufriend_kbv.o"
 "project\main.o"
 "project\gpio.o"
 "project\tim.o"
 "project\usart.o"
 "project\stm32f4xx_it.o"
 "project\stm32f4xx_hal_msp.o"
-"project\mcufriend_kbv.o"
 "project\stm32f4xx_hal_tim.o"
 "project\stm32f4xx_hal_tim_ex.o"
 "project\stm32f4xx_hal_rcc.o"
