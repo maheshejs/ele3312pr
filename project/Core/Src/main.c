@@ -266,6 +266,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+		LCD_FillRect(80, 160, 150, 25, BLACK);
+		LCD_SetCursor(80, 160);
+		LCD_Printf("%.2f\r\n", (pulse_width)/58.0f);
+		printf("%.2f\r\n", (pulse_width)/58.0f);
+		
 		mPade1 = MovePong(mPade1);
 		mPade2 = MovePong(mPade2);		
 		MoveBall();
@@ -276,8 +281,6 @@ int main(void)
 		//emulate player two :
 		mPade2.xSpeed = (rand()%5-2);
 
-		LCD_SetCursor(80, 160);
-		LCD_Printf("%.2f\r\n", (pulse_width)/58.0f);
 		HAL_Delay(25);
   }
   /* USER CODE END 3 */
