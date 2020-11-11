@@ -6,6 +6,7 @@
 #define SUPPORT_9488_555          //costs +230 bytes, 0.03s / 0.19s
 #define SUPPORT_B509_7793         //R61509, ST7793 +244 bytes
 #define OFFSET_9327 32            //costs about 103 bytes, 0.08s
+#define ID_NUMBER 0x5310  
 
 #include "MCUFRIEND_kbv.h"
 #include "mcufriend_keil.h"
@@ -1198,7 +1199,7 @@ static void init_table16(const void *table, int16_t size)
 
 void LCD_Begin(void)
 {
-		uint16_t ID = LCD_ReadID();
+		uint16_t ID = ID_NUMBER;//uint16_t ID = LCD_ReadID();
     int16_t *p16;               //so we can "write" to a const protected variable.
     const uint8_t *table8_ads = NULL;
     int16_t table_size;
