@@ -266,10 +266,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		LCD_FillRect(80, 160, 150, 25, BLACK);
-		LCD_SetCursor(80, 160);
-		LCD_Printf("%.2f\r\n", (pulse_width)/58.0f);
-		printf("%.2f\r\n", (pulse_width)/58.0f);
+		LCD_FillRect(100, 160, 130, 25, BLACK);
+		LCD_SetCursor(100, 160);
+		LCD_Printf("%i\r\n", (pulse_width)/58);
+		printf("%i\r\n", (pulse_width)/58);
 		
 		mPade1 = MovePong(mPade1);
 		mPade2 = MovePong(mPade2);		
