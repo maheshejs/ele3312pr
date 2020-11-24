@@ -78,8 +78,10 @@ volatile uint32_t local_time = 0;
 #define isController
 //#define isExecuter
 
-uint8_t score_g;
-uint8_t score_d;
+uint8_t score_g = 0;
+uint8_t score_d = 0;
+bool score_g_changed = true;
+bool score_d_changed = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -225,14 +227,28 @@ void sendHeight(){
 
 void MoveBall()
 {
+	LCD_FillCircle(mBall.xPos,mBall.yPos,RBALL+2,BLACK);
 	switch (CollisionBall())
 	{
 		case UDWALL:
+								BorderGame();
 								mBall.xSpeed*=-1;
 								break;
 		case LRWALL:
+								BorderGame();
 								mBall.ySpeed*=-1;
-								//TODO J'AI PERDU
+								// Hitting the top means that left player scored.
+								if (mBall.yPos < 50){
+									score_g++;
+									score_g_changed = true;
+								}
+								// The ball hitting the bottom means the right one scored.
+								else if (mBall.yPos > 150){
+									score_d++;
+									score_d_changed = true;
+								}
+								// Put the ball back into the middle.
+								mBall.yPos = MAXWIDTH / 2;
 								break;
 		case PLAYER2:
 								mBall.ySpeed *= -1;
@@ -245,8 +261,6 @@ void MoveBall()
 		default:
 								break;
 	}
-	
-	LCD_FillCircle(mBall.xPos,mBall.yPos,RBALL+2,BLACK);
 	mBall.xPos += mBall.xSpeed;
 	mBall.yPos += mBall.ySpeed;
 	HAL_UART_Receive_DMA(&huart3, receiveBuffer, 4);
@@ -342,30 +356,41 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		drawNet();
-		// Display score
-		LCD_FillRect(50, 80, 130, 25, BLACK);
-		LCD_SetCursor(50, 80);
-		LCD_Printf("%i\r\n", score_d); // Player 1
-		LCD_FillRect(50, 240, 130, 25, BLACK);
-		LCD_SetCursor(50, 240);
-		LCD_Printf("%i\r\n", score_g); // Player 2
-		
+		// Display the net only if the ball is near it.
+		if (mBall.yPos > (MAXWIDTH/2) - (2*FONT)
+				&& mBall.yPos < (MAXWIDTH/2) + (2*FONT))
+			drawNet();
+		// Display scores  either if they changed or if they are
+		// erase by the motion of the ball.
+		if ((mBall.yPos > 50 && mBall.yPos < 110
+				&& mBall.xPos > 20 && mBall.xPos < 100)
+				|| score_d_changed){
+			LCD_FillRect(50, 80, 130, 25, BLACK);
+			LCD_SetCursor(50, 80);
+			LCD_Printf("%i\r\n", score_d); // Player 1
+		}
+		if ((mBall.yPos > 210 && mBall.yPos < 270
+				&& mBall.xPos > 20 && mBall.xPos < 100)
+				|| score_g_changed){
+			LCD_FillRect(50, 240, 130, 25, BLACK);
+			LCD_SetCursor(50, 240);
+			LCD_Printf("%i\r\n", score_g); // Player 2
+		}
+		score_g_changed = false;
+		score_d_changed = false;
 		
 		// Measure distance
 		distance = ((float)pulse_width)/58.0;
 		
-		//mPade1 = MovePong(mPade1);
 		mPade2 = MovePong(mPade2);		
 		MoveBall();
 		
-		//emulate player one :
-		//mPade1.xSpeed = (rand()%5-2);
+		// Control pong one (i.e. right):
 		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
 		placePongWithDistance(&mPade1, distance);
 		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
 		
-		//emulate player two :
+		//emulate player two (i.e. left):
 		mPade2.xSpeed = (rand()%5-2);
 
 		HAL_Delay(25);
