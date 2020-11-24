@@ -292,8 +292,7 @@ int main(void)
 		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 		HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
 		HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-		//HAL_UART_Receive_DMA(&huart3, rx_data, RX_DATA_SIZE);
-		HAL_UART_Receive_DMA(&huart3, tab_received, 1);
+		HAL_UART_Receive_DMA(&huart3, rx_data, RX_DATA_SIZE);
 
   /* USER CODE END 2 */
 
