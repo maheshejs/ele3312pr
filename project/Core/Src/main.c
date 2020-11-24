@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -26,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #define ARM_MATH_CM4
+#define MASTER_GAME 1 
 #include "arm_math.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -64,7 +66,16 @@
 #define LIMITL  (MAXWIDTH - FONT)
 
 extern volatile uint32_t pulse_width;
-volatile uint8_t done = 0;
+volatile uint32_t local_time = 0;
+volatile uint8_t transmit_done = 0;
+volatile uint8_t receive_done = 0;
+
+#define TX_DATA_SIZE 2 * (1 + MASTER_GAME)
+#define RX_DATA_SIZE 2 * (2 - MASTER_GAME)
+
+uint8_t tx_data[TX_DATA_SIZE]; 
+uint8_t rx_data[RX_DATA_SIZE]; 
+uint8_t tab_received[1]; 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,8 +91,14 @@ struct Tool
 	float ySpeed;
 	enum Tools mType;
 };
+struct Player
+{
+	uint8_t score;
+};
 
 struct Tool mBall,mPade1,mPade2;
+struct Player mPlayer1, mPlayer2;
+void gay(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -93,12 +110,23 @@ struct Tool mBall,mPade1,mPade2;
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
 
+//unsigned int conversion(unsigned int a, unsigned int b)
+//{
+//	unsigned int r0 = (a << 16) >> 16;
+//	unsigned int r1 = a >> 16 ;
+//	unsigned int r2 = (b << 16) >> 16;
+//	unsigned int r3 = b >> 16 ;
+//	unsigned int result = (r0 * r2) + ( (r1*r2 + r0*r3) << 16 );
+//	
+//	
+//}
+
 void SetLCD(void)
 {
 	LCD_Begin();
 	HAL_Delay(20);
 	LCD_SetRotation(0);
-//	LCD_InvertDisplay(false);
+	LCD_InvertDisplay(true);
 	LCD_FillScreen(BLACK);
 }
 
@@ -128,6 +156,7 @@ int BallRectangle (int16_t Cx,int16_t Cy,int16_t Rx, int16_t Ry, int16_t RectWid
 	return (DeltaX * DeltaX + DeltaY * DeltaY) < (RBALL * RBALL);
 }
 
+#if MASTER_GAME
 enum CollisionType CollisionBall()
 {
 	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,MAXHEIGHT-FONT, 0, FONT, MAXWIDTH) ||
@@ -146,6 +175,7 @@ enum CollisionType CollisionBall()
 	
 	return NONE;
 }
+#endif
 
 int CollisionPong(struct Tool mPade)
 {
@@ -170,11 +200,13 @@ void InitGame()
 	mPade2.xPos = MAXHEIGHT/2-PONGSIZE/2;
 	mPade2.yPos = MAXWIDTH - SPACE - FONT;
 	mPade2.xSpeed = 0;
-	mPade2.ySpeed = 0;	
+	mPade2.ySpeed = 0;
 }
 
+#if MASTER_GAME
 void MoveBall()
 {
+
 	switch (CollisionBall())
 	{
 		case UDWALL:
@@ -195,12 +227,12 @@ void MoveBall()
 		default:
 								break;
 	}
-	
-	LCD_FillCircle(mBall.xPos,mBall.yPos,RBALL,BLACK);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,BLACK);
 	mBall.xPos += mBall.xSpeed;
 	mBall.yPos += mBall.ySpeed;
-	LCD_FillCircle(mBall.xPos,mBall.yPos,RBALL,WHITE);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
 }
+#endif
 
 struct Tool MovePong(struct Tool mPong)
 {
@@ -245,9 +277,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 		HAL_Delay(1000);
 		SetLCD();
@@ -255,8 +289,12 @@ int main(void)
 		BorderGame();	
 		HAL_GPIO_WritePin(LD2_GPIO_Port,LD2_Pin,GPIO_PIN_SET);
 		HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 		HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
 		HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
+		//HAL_UART_Receive_DMA(&huart3, rx_data, RX_DATA_SIZE);
+		HAL_UART_Receive_DMA(&huart3, tab_received, 1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -269,18 +307,63 @@ int main(void)
 		LCD_FillRect(100, 160, 130, 25, BLACK);
 		LCD_SetCursor(100, 160);
 		LCD_Printf("%i\r\n", (pulse_width)/58);
-		printf("%i\r\n", (pulse_width)/58);
-		
+#if MASTER_GAME
 		mPade1 = MovePong(mPade1);
-		mPade2 = MovePong(mPade2);		
+#else
+		mPade2 = MovePong(mPade2);
+		tx_data[0] = 253;
+		tx_data[1] = (uint8_t) (mPade2.xPos);
+		HAL_UART_Transmit_DMA(&huart3, tx_data, TX_DATA_SIZE);	
+#endif
+	local_time = 0;
+	while (receive_done == 0)
+	{
+		if (local_time == 50)
+			break;
+	}
+	if (receive_done == 1)
+	{
+				
+#if MASTER_GAME
+		if (rx_data[0] == 253)
+		{
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,BLACK);
+			mPade2.xPos = rx_data[1];
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+			receive_done = 0;
+		}
+#else
+		if (rx_data[0] == 254)
+		{
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
+				mPade1.xPos = rx_data[3];
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,BLACK);
+				mBall.xPos = rx_data[1];
+				mBall.yPos = rx_data[2]*2;
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
+		}		
+#endif
+		receive_done = 0;
+	}
+
+#if MASTER_GAME
 		MoveBall();
-		
+		tx_data[0] = 254;
+		tx_data[1] = (uint8_t) (mBall.xPos);
+		tx_data[2] = (uint8_t) (mBall.yPos/2);
+		tx_data[3] = (uint8_t)	mPade1.xPos;
+		HAL_UART_Transmit_DMA(&huart3, tx_data, TX_DATA_SIZE);
+#endif
+	
+#if MASTER_GAME
 		//emulate player one :
 		mPade1.xSpeed = (rand()%5-2);
-		
+#else		
 		//emulate player two :
 		mPade2.xSpeed = (rand()%5-2);
-
+#endif
 		HAL_Delay(25);
   }
   /* USER CODE END 3 */
@@ -348,13 +431,54 @@ PUTCHAR_PROTOTYPE
 }
 
 void HAL_SYSTICK_Callback(void) {
-	static int local_time = 0;
 	local_time++;
-	if(local_time == 200)
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
+{
+	if (GPIO_PIN == GPIO_PIN_13)
 	{
-		done = 1;
-		local_time = 0;
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
+		if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13))
+		{
+			HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
+		}
+		else
+		{
+			HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+		}
+			
+		
 	}
+		
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART3)
+	{
+		receive_done = 0;
+		HAL_UART_Receive_DMA(&huart3, rx_data, RX_DATA_SIZE);
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART3)
+	{
+		receive_done = 1;
+		printf("Receive done \r\n");
+	}	
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART3)
+	{
+		transmit_done = 1;
+		printf("Transmit done \r\n");
+	}
+		
 }
 
 /* USER CODE END 4 */
