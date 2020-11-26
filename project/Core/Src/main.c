@@ -344,8 +344,10 @@ int main(void)
 	BorderGame();	
 	HAL_GPIO_WritePin(LD2_GPIO_Port,LD2_Pin,GPIO_PIN_SET);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -356,6 +358,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+		//if (HAL_GPIO_ReadPin(detector_GPIO_Port, detector_Pin) == SET)
+		//	printf("3.3 V\r\n");
+		//else
+		//	printf("0 V\r\n");
+		
 		// Display the net only if the ball is near it.
 		if (mBall.yPos > (MAXWIDTH/2) - (2*FONT)
 				&& mBall.yPos < (MAXWIDTH/2) + (2*FONT))
@@ -469,6 +476,15 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 void HAL_SYSTICK_Callback(void) {
 	local_time++;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN){
+	if (GPIO_PIN == GPIO_PIN_13){
+		if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13))
+			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_4);
+		else
+			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+	}
 }
 
 /* USER CODE END 4 */
