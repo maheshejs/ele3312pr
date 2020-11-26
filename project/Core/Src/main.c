@@ -227,7 +227,7 @@ void sendHeight(){
 
 void MoveBall()
 {
-	LCD_FillCircle(mBall.xPos,mBall.yPos,RBALL+2,BLACK);
+	LCD_FillCircle(mBall.xPos, mBall.yPos, RBALL+2, BLACK);
 	switch (CollisionBall())
 	{
 		case UDWALL:
@@ -238,12 +238,12 @@ void MoveBall()
 								BorderGame();
 								mBall.ySpeed*=-1;
 								// Hitting the top means that left player scored.
-								if (mBall.yPos < 50){
+								if (mBall.yPos < 25){
 									score_g++;
 									score_g_changed = true;
 								}
 								// The ball hitting the bottom means the right one scored.
-								else if (mBall.yPos > 150){
+								else if (mBall.yPos > 200){
 									score_d++;
 									score_d_changed = true;
 								}
@@ -353,15 +353,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	float distance = 0;
+	MoveBall();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		//if (HAL_GPIO_ReadPin(detector_GPIO_Port, detector_Pin) == SET)
-		//	printf("3.3 V\r\n");
-		//else
-		//	printf("0 V\r\n");
 		
 		// Display the net only if the ball is near it.
 		if (mBall.yPos > (MAXWIDTH/2) - (2*FONT)
