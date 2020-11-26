@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #define ARM_MATH_CM4
+#define CONTROLLER 0
 #include "arm_math.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -65,18 +66,16 @@
 #define LIMITL  (MAXWIDTH - FONT)
 
 extern volatile uint32_t pulse_width;
-volatile uint8_t done = 0;
 
-#define BufferSize 4
-uint8_t transferBuffer[BufferSize];
-uint8_t receiveBuffer[BufferSize];
+#define TX_BUFFER_SIZE 2 * (1 + CONTROLLER)
+#define RX_BUFFER_SIZE 2 * (2 - CONTROLLER)
+
+uint8_t transferBuffer[TX_BUFFER_SIZE]; 
+uint8_t receiveBuffer[RX_BUFFER_SIZE]; 
 
 volatile bool flagTransmitted = false;
 volatile bool flagReceived = false;
 volatile uint32_t local_time = 0;
-
-#define isController
-//#define isExecuter
 
 uint8_t score_g = 0;
 uint8_t score_d = 0;
@@ -145,6 +144,7 @@ int BallRectangle (int16_t Cx,int16_t Cy,int16_t Rx, int16_t Ry, int16_t RectWid
 	return (DeltaX * DeltaX + DeltaY * DeltaY) < (RBALL * RBALL);
 }
 
+#if CONTROLLER
 enum CollisionType CollisionBall()
 {
 	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,MAXHEIGHT-FONT, 0, FONT, MAXWIDTH) ||
@@ -163,7 +163,7 @@ enum CollisionType CollisionBall()
 	
 	return NONE;
 }
-
+#endif
 int CollisionPong(struct Tool mPade)
 {
 	if(((mPade.xPos + mPade.xSpeed + PONGSIZE) > LIMITUP) || 
@@ -193,41 +193,42 @@ void InitGame()
 /** Transmit the already filled 'transferBuffer' array through
 * USART and wait until it is received.
 */
-void finishTransmission(int nBytes){
-	HAL_UART_Transmit_DMA(&huart3, transferBuffer, nBytes);
-	while (flagTransmitted == false);
-	flagTransmitted = false;
-	local_time = 0;
-	while (flagReceived == false && local_time < 1000);
-	flagReceived = false;
-}
-#ifdef isController
-void sendPosition(){
-	transferBuffer[0] = 254;
-	transferBuffer[1] = (uint8_t) (mBall.xPos);
-	transferBuffer[2] = (uint8_t) (mBall.yPos / 2);
-	transferBuffer[3] = (uint8_t) (mPade1.xPos);
-	finishTransmission(4);
-}
-void sendScore(){
-	transferBuffer[0] = 255;
-	transferBuffer[1] = score_g;
-	transferBuffer[2] = score_d;
-	transferBuffer[3] = 0;
-	finishTransmission(4);
-}
-#endif
-#ifdef isExecuter
-void sendHeight(){
-	transferBuffer[0] = 253;
-	transferBuffer[1] = (uint8_t) (mPade1.xPos);
-	finishTransmission(2);
-}
-#endif
+//void finishTransmission(int nBytes){
+//	HAL_UART_Transmit_DMA(&huart3, transferBuffer, nBytes);
+//	while (flagTransmitted == false);
+//	flagTransmitted = false;
+//	local_time = 0;
+//	while (flagReceived == false && local_time < 1000);
+//	flagReceived = false;
+//}
+//#ifdef isController
+//void sendPosition(){
+//	transferBuffer[0] = 254;
+//	transferBuffer[1] = (uint8_t) (mBall.xPos);
+//	transferBuffer[2] = (uint8_t) (mBall.yPos / 2);
+//	transferBuffer[3] = (uint8_t) (mPade1.xPos);
+//	finishTransmission(4);
+//}
+//void sendScore(){
+//	transferBuffer[0] = 255;
+//	transferBuffer[1] = score_g;
+//	transferBuffer[2] = score_d;
+//	transferBuffer[3] = 0;
+//	finishTransmission(4);
+//}
+//#endif
+//#ifdef isExecuter
+//void sendHeight(){
+//	transferBuffer[0] = 253;
+//	transferBuffer[1] = (uint8_t) (mPade1.xPos);
+//	finishTransmission(2);
+//}
+//#endif
 
+#if CONTROLLER
 void MoveBall()
 {
-	LCD_FillCircle(mBall.xPos, mBall.yPos, RBALL+2, BLACK);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL+2,BLACK);
 	switch (CollisionBall())
 	{
 		case UDWALL:
@@ -261,26 +262,24 @@ void MoveBall()
 		default:
 								break;
 	}
+	
 	mBall.xPos += mBall.xSpeed;
 	mBall.yPos += mBall.ySpeed;
-	HAL_UART_Receive_DMA(&huart3, receiveBuffer, 4);
-	
-	sendPosition();
-	
-	LCD_FillCircle(receiveBuffer[1], receiveBuffer[2] * 2, RBALL, WHITE);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
 }
+#endif
 
-struct Tool MovePong(struct Tool mPong)
-{
-	if(!CollisionPong(mPong))
-	{
-		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,BLACK);
-		mPong.xPos += mPong.xSpeed;
-		mPong.yPos += mPong.ySpeed;
-		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,WHITE);
-	}
-	return mPong;
-}
+//struct Tool MovePong(struct Tool mPong)
+//{
+//	if(!CollisionPong(mPong))
+//	{
+//		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,BLACK);
+//		mPong.xPos += mPong.xSpeed;
+//		mPong.yPos += mPong.ySpeed;
+//		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,WHITE);
+//	}
+//	return mPong;
+//}
 
 void drawNet(){
 	LCD_FillRect(FONT, 320/2 - FONT/2, 240-(2*FONT), FONT, BLACK);
@@ -334,7 +333,6 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
-  MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
@@ -348,18 +346,21 @@ int main(void)
 	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
 	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_4);
+	HAL_UART_Receive_DMA(&huart3, receiveBuffer, RX_BUFFER_SIZE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	float distance = 0;
-	MoveBall();
+	//MoveBall();
+	LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+	LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		
+			
 		// Display the net only if the ball is near it.
 		if (mBall.yPos > (MAXWIDTH/2) - (2*FONT)
 				&& mBall.yPos < (MAXWIDTH/2) + (2*FONT))
@@ -382,20 +383,73 @@ int main(void)
 		}
 		score_g_changed = false;
 		score_d_changed = false;
-		
 		// Measure distance
 		distance = ((float)pulse_width)/58.0;
-		
-		mPade2 = MovePong(mPade2);		
-		MoveBall();
-		
-		// Control pong one (i.e. right):
+#if CONTROLLER
 		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
 		placePongWithDistance(&mPade1, distance);
 		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+#else
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,BLACK);
+		placePongWithDistance(&mPade2, distance);
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+		transferBuffer[0] = 253;
+		transferBuffer[1] = (uint8_t) (mPade2.xPos);
+		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);	
+#endif
+	local_time = 0;
+	while (!flagReceived)
+	{
+		if (local_time == 50)
+			break;
+	}
+	if (flagReceived)
+	{
+				
+#if CONTROLLER
+		if (receiveBuffer[0] == 253)
+		{
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,BLACK);
+			mPade2.xPos = receiveBuffer[1];
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+			flagReceived = 0;
+		}
+#else
+		if (receiveBuffer[0] == 254)
+		{
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
+				mPade1.xPos = receiveBuffer[3];
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,BLACK);
+				mBall.xPos = receiveBuffer[1];
+				mBall.yPos = receiveBuffer[2]*2;
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
+		}		
+#endif
+		flagReceived = false;
+	}
+
+#if CONTROLLER
+		MoveBall();
+		transferBuffer[0] = 254;
+		transferBuffer[1] = (uint8_t) (mBall.xPos);
+		transferBuffer[2] = (uint8_t) (mBall.yPos/2);
+		transferBuffer[3] = (uint8_t)	mPade1.xPos;
+		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+#endif
 		
-		//emulate player two (i.e. left):
-		mPade2.xSpeed = (rand()%5-2);
+		
+//		mPade2 = MovePong(mPade2);		
+//		MoveBall();
+		
+//		// Control pong one (i.e. right):
+//		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
+//		placePongWithDistance(&mPade1, distance);
+//		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+//		
+//		//emulate player two (i.e. left):
+//		mPade2.xSpeed = (rand()%5-2);
 
 		HAL_Delay(25);
   }
@@ -461,6 +515,14 @@ PUTCHAR_PROTOTYPE
 	of transmission */
     HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
     return ch;
+}
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART3)
+	{
+		flagReceived = false;
+		HAL_UART_Receive_DMA(&huart3, receiveBuffer, RX_BUFFER_SIZE);
+	}
 }
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART3)

@@ -64,11 +64,6 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
-#define USART_detect_Pin GPIO_PIN_0
-#define USART_detect_GPIO_Port GPIOB
-#define USART_detect_EXTI_IRQn EXTI0_IRQn
-#define USART1_RX_Pin GPIO_PIN_10
-#define USART1_RX_GPIO_Port GPIOA
 #define TIM1_CH4_Pin GPIO_PIN_11
 #define TIM1_CH4_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
@@ -81,8 +76,6 @@ void Error_Handler(void);
 #define USART3_RX_GPIO_Port GPIOC
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
-#define USART1_TX_Pin GPIO_PIN_6
-#define USART1_TX_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
