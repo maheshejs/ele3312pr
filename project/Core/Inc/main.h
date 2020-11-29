@@ -64,6 +64,8 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define interrupteur_Pin GPIO_PIN_5
+#define interrupteur_GPIO_Port GPIOC
 #define TIM1_CH4_Pin GPIO_PIN_11
 #define TIM1_CH4_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
