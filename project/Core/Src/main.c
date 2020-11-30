@@ -33,6 +33,10 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdbool.h"
+#include "ball.h"
+#include "badminton.h"
+#include "title.h"
+#include "3d.h"
 #include "MCUFRIEND_kbv.h"
 /* USER CODE END Includes */
 
@@ -55,9 +59,9 @@
 /* USER CODE BEGIN PV */
 #define MAXHEIGHT 240
 #define MAXWIDTH 320
-#define FONT 10
+#define FONT 8
 #define PONGSIZE 50
-#define SPACE 20
+#define SPACE 8
 #define RBALL 5
 #define PONGSPEED 5
 #define VYSPEED 5.0
@@ -81,12 +85,14 @@ uint8_t score_g = 0;
 uint8_t score_d = 0;
 bool score_g_changed = true;
 bool score_d_changed = true;
+uint8_t toggle = 0;
+enum mode currentMode = Title;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-enum Tools { BALL, PONG};
+enum Tools {BALL, PONG};
 enum CollisionType {UDWALL,LRWALL,PLAYER1,PLAYER2,NONE};
 struct Tool
 {
@@ -97,7 +103,7 @@ struct Tool
 	enum Tools mType;
 };
 
-struct Tool mBall,mPade1,mPade2;
+struct Tool mBall, mPade1, mPade2;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -113,17 +119,16 @@ void SetLCD(void)
 {
 	LCD_Begin();
 	HAL_Delay(20);
-	LCD_SetRotation(0);
-//	LCD_InvertDisplay(false);
-	LCD_FillScreen(BLACK);
+	LCD_SetRotation(3);
+	LCD_FillScreen(LCD_Color565(0,17,114));
 }
 
 void BorderGame(void)
 {
-	LCD_FillRect(0, 0, MAXHEIGHT, FONT, WHITE); //LEFT
-	LCD_FillRect(0, 0, FONT, MAXWIDTH, WHITE);  //DOWN
-	LCD_FillRect(MAXHEIGHT-FONT, 0, FONT, MAXWIDTH, WHITE); //UP
-	LCD_FillRect(0, MAXWIDTH-FONT, MAXHEIGHT, FONT, WHITE); //RIGHT
+	LCD_FillRect(MAXWIDTH - FONT, 0, FONT,  MAXHEIGHT, WHITE); //RIGHT
+	LCD_FillRect(0, 0, MAXWIDTH, FONT, WHITE);  //UP
+	LCD_FillRect(0, MAXHEIGHT-FONT, MAXWIDTH, FONT,  WHITE); //DOWN
+	LCD_FillRect(0, 0,  FONT, MAXHEIGHT, WHITE); //LEFT
 }
 
 int16_t cMax(int16_t a, int16_t b)
@@ -141,24 +146,24 @@ int BallRectangle (int16_t Cx,int16_t Cy,int16_t Rx, int16_t Ry, int16_t RectWid
 	int16_t DeltaX = Cx - cMax(Rx, cMin(Cx, Rx + RectWidth));
 	int16_t DeltaY = Cy - cMax(Ry, cMin(Cy, Ry + RectHeight));
 	
-	return (DeltaX * DeltaX + DeltaY * DeltaY) < (RBALL * RBALL);
+	return (DeltaX * DeltaX + DeltaY * DeltaY) <= ( ( RBALL + 2) * (RBALL + 2));
 }
 
 #if CONTROLLER
 enum CollisionType CollisionBall()
 {
-	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,MAXHEIGHT-FONT, 0, FONT, MAXWIDTH) ||
-		BallRectangle(mBall.xPos+ mBall.xSpeed,mBall.yPos + mBall.ySpeed,0, 0, FONT, MAXWIDTH))
+	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed, 0, MAXHEIGHT-FONT,  MAXWIDTH, FONT) ||
+		BallRectangle(mBall.xPos+ mBall.xSpeed,mBall.yPos + mBall.ySpeed,0, 0, MAXWIDTH, FONT))
 			return UDWALL;
 	
-	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,0,MAXWIDTH-FONT,MAXHEIGHT,FONT) ||
-		BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,0, 0, MAXHEIGHT, FONT))
+	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,0,0, FONT,MAXHEIGHT) ||
+		BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,MAXWIDTH - FONT, 0, FONT, MAXHEIGHT))
 			return LRWALL;
 	
-	if(BallRectangle(mBall.xPos + mBall.xSpeed, mBall.yPos + mBall.ySpeed,mPade2.xPos,mPade2.yPos,PONGSIZE,FONT))
+	if(BallRectangle(mBall.xPos + mBall.xSpeed, mBall.yPos + mBall.ySpeed,mPade2.xPos,mPade2.yPos,FONT,PONGSIZE))
 		return PLAYER2;
 
-	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,mPade1.xPos,mPade1.yPos,PONGSIZE,FONT))
+	if(BallRectangle(mBall.xPos + mBall.xSpeed,mBall.yPos + mBall.ySpeed,mPade1.xPos,mPade1.yPos,FONT,PONGSIZE))
 		return PLAYER1;
 	
 	return NONE;
@@ -174,20 +179,20 @@ int CollisionPong(struct Tool mPade)
 
 void InitGame()
 {
-	mBall.xPos = MAXHEIGHT/2;
-	mBall.yPos = MAXWIDTH/2;
+	mBall.xPos = MAXWIDTH/2;
+	mBall.yPos = MAXHEIGHT/2;
 	mBall.xSpeed = 1;
 	mBall.ySpeed = 1;
-	
-	mPade1.xPos = MAXHEIGHT/2-PONGSIZE/2;
-	mPade1.yPos = SPACE;
+		     
+	mPade1.xPos = SPACE ;
+	mPade1.yPos = MAXHEIGHT/2-PONGSIZE/2;
 	mPade1.xSpeed = 0;
-	mPade1.ySpeed = 0;
-	     
-	mPade2.xPos = MAXHEIGHT/2-PONGSIZE/2;
-	mPade2.yPos = MAXWIDTH - SPACE - FONT;
+	mPade1.ySpeed = 0;	
+	
+	mPade2.xPos = MAXWIDTH - SPACE - FONT ;
+	mPade2.yPos = MAXHEIGHT/2-PONGSIZE/2;
 	mPade2.xSpeed = 0;
-	mPade2.ySpeed = 0;	
+	mPade2.ySpeed = 0;
 }
 
 /** Transmit the already filled 'transferBuffer' array through
@@ -228,36 +233,36 @@ void InitGame()
 #if CONTROLLER
 void MoveBall()
 {
-	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL+2,BLACK);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL+2,LCD_Color565(0,17,114));
 	switch (CollisionBall())
 	{
 		case UDWALL:
-								BorderGame();
-								mBall.xSpeed*=-1;
+								//BorderGame();
+								mBall.ySpeed *=-1;
 								break;
 		case LRWALL:
-								BorderGame();
-								mBall.ySpeed*=-1;
+								//BorderGame();
+								mBall.xSpeed*=-1;
 								// Hitting the top means that left player scored.
-								if (mBall.yPos < 25){
-									score_g++;
-									score_g_changed = true;
-								}
-								// The ball hitting the bottom means the right one scored.
-								else if (mBall.yPos > 200){
+								if (mBall.xPos < 25){
 									score_d++;
 									score_d_changed = true;
 								}
+								// The ball hitting the bottom means the right one scored.
+								else if (mBall.xPos > 200){
+									score_g++;
+									score_g_changed = true;
+								}
 								// Put the ball back into the middle.
-								mBall.yPos = MAXWIDTH / 2;
+								mBall.xPos = MAXWIDTH / 2;
 								break;
 		case PLAYER2:
-								mBall.ySpeed *= -1;
-								mBall.xSpeed  = (((mPade2.xPos + PONGSIZE/2.0) - mBall.xPos)/(PONGSIZE/2.0))*-VYSPEED; 
+								mBall.xSpeed *= -1;
+								mBall.ySpeed  = (((mPade2.yPos + PONGSIZE/2.0) - mBall.yPos)/(PONGSIZE/2.0))*-VYSPEED; 
 								break;
 		case PLAYER1:
-								mBall.ySpeed *= -1;
-								mBall.xSpeed  = (((mPade1.xPos + PONGSIZE/2.0) - mBall.xPos)/(PONGSIZE/2.0))*-VYSPEED; 
+								mBall.xSpeed *= -1;
+								mBall.ySpeed  = (((mPade1.yPos + PONGSIZE/2.0) - mBall.yPos)/(PONGSIZE/2.0))*-VYSPEED; 
 								break;
 		default:
 								break;
@@ -265,7 +270,7 @@ void MoveBall()
 	
 	mBall.xPos += mBall.xSpeed;
 	mBall.yPos += mBall.ySpeed;
-	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
+	LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,LCD_Color565(0,255,33));
 }
 #endif
 
@@ -273,7 +278,7 @@ void MoveBall()
 //{
 //	if(!CollisionPong(mPong))
 //	{
-//		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,BLACK);
+//		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,LCD_Color565(0,17,114));
 //		mPong.xPos += mPong.xSpeed;
 //		mPong.yPos += mPong.ySpeed;
 //		LCD_FillRect(mPong.xPos,mPong.yPos,PONGSIZE,FONT,WHITE);
@@ -282,10 +287,9 @@ void MoveBall()
 //}
 
 void drawNet(){
-	LCD_FillRect(FONT, 320/2 - FONT/2, 240-(2*FONT), FONT, BLACK);
-	for (int i = 0; i < 12; i += 2){
-		LCD_FillRect(FONT + (i*2*FONT), 320/2 - FONT/2, FONT*2, FONT, WHITE);
-	}
+	LCD_FillRect(FONT, 320/2 - FONT/8, 240-(2*FONT), FONT/4, LCD_Color565(0,17,114));
+	for (int i = 0; i < 7; i++)
+		LCD_FillRect(320/2 - FONT/8, FONT + FONT/2 + (i*4*FONT), FONT/4, FONT*3, WHITE);
 }
 void placePongWithDistance(struct Tool* mPong, float distance){
 	// Remove 2 cm because it is too close to the sensor, normalise with 30 cm
@@ -297,8 +301,97 @@ void placePongWithDistance(struct Tool* mPong, float distance){
 	if (normalisedDistance + PONGSIZE > MAXHEIGHT - (2*FONT))
 		normalisedDistance = MAXHEIGHT - PONGSIZE - (2*FONT);
 	// Place pong
-	mPong->xPos = normalisedDistance + FONT;
+	mPong->yPos = normalisedDistance + FONT;
 }
+
+void displayDefaite(uint8_t score_g, uint8_t score_d)
+{
+		LCD_FillScreen(LCD_Color565(140,0,0));
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(BLACK,LCD_Color565(140,0,0));
+		LCD_SetTextSize(4);
+		LCD_Printf("X DEFAITE X\r\n");
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(90 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_g);
+
+		LCD_SetCursor(190 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,224,71), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_d);
+}
+
+void displayVictoire(uint8_t score_g, uint8_t score_d)
+{
+		//FONT
+		//LCD_FillScreen(LCD_Color565(0,229,26));
+		LCD_FillScreen(GREENYELLOW);
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(WHITE, GREENYELLOW);
+		LCD_SetTextSize(4);
+		LCD_Printf("!! BRAVO !!\r\n");
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+	
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(90 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_g);
+
+		LCD_SetCursor(190 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,224,71), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_d);
+}
+void displayFin(uint8_t score)
+{
+		//FONT
+		LCD_FillScreen(LCD_Color565(0, 155, 255));
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0, 155, 255));
+		LCD_SetTextSize(4);
+	  LCD_Printf(" ): FIN :(\r\n");
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+	
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(130 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score);
+}
+
 
 /* USER CODE END 0 */
 
@@ -338,8 +431,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	HAL_Delay(1000);
 	SetLCD();
-	InitGame();
-	BorderGame();	
+	//InitGame();
+	//BorderGame();	
 	HAL_GPIO_WritePin(LD2_GPIO_Port,LD2_Pin,GPIO_PIN_SET);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
@@ -352,49 +445,149 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	float distance = 0;
-	//MoveBall();
-	LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
-	LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+//	LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT, PONGSIZE,LCD_Color565(255,0,0));
+//	LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT, PONGSIZE,LCD_Color565(255,224,71));
+//	LCD_SetCursor(240 - FONT, 30);
+//	LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+//	LCD_Printf("%i\r\n", score_d); // Player 1
+//	LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+//	LCD_SetCursor(80 - FONT, 30);
+//	LCD_Printf("%i\r\n", score_g); // Player 2
+		const char* intro[13] = {"ELE3312 - Project", "", "PONG-19", "", 
+			"Modern pong game", "Futuristic look", "", "Developed by : ", "", "Joseph Maheshe", "Vincent Therrien",
+			"", "December 3, 2020"
+		};
+		
+		int16_t ht = 16, top = 3, line = 0, lines = 13, scroll=0;
+		LCD_FillScreen(LCD_Color565(140,0,0));
+		LCD_SetTextSize(2);
+		LCD_SetTextColor(WHITE, LCD_Color565(140,0,0));
+		LCD_SetRotation(0);
+		while(line < lines)
+		{
+		LCD_SetCursor(0, (scroll + top) * ht);
+    LCD_VertScroll(top * ht, lines * ht, (++scroll) * ht);
+		LCD_Printf(intro[line]);
+    HAL_Delay(1000);
+    line++;
+		}
+		LCD_SetTextSize(3);
+	initTitle();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-			
+		
+//		while(exitB() == 0)
+//		{
+			distance = ((float)pulse_width)/58.0;
+//			updateBadminton(distance);
+//			HAL_Delay(25);
+//		}
+			if (currentMode == Title){
+			updateTitle(distance);
+			if (HAL_GPIO_ReadPin(interrupteur_GPIO_Port, interrupteur_Pin) == RESET){
+				currentMode = getMode();
+				if (currentMode == Mode3D)
+					init3D();
+				else if(currentMode == Badminton)
+					initBadminton();
+				else if (currentMode == DeuxContreDeux)
+				{
+					LCD_FillScreen(LCD_Color565(0,17,114));
+					BorderGame();
+					InitGame();
+					LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT, PONGSIZE,LCD_Color565(255,0,0));
+					LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT, PONGSIZE,LCD_Color565(255,224,71));
+					LCD_SetCursor(240 - FONT, 30);
+					LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+					LCD_Printf("%i\r\n", score_d); // Player 1
+					LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+					LCD_SetCursor(80 - FONT, 30);
+					LCD_Printf("%i\r\n", score_g); // Player 2
+				}
+			}
+		}
+		// 3D
+		if (currentMode == Mode3D){
+			update3D(distance);
+			if (mode3DmustExit() == -1){
+				displayDefaite(getPlayerScore3D(), getComputerScore3D());
+				HAL_Delay(3000);
+				currentMode = Title;
+				initTitle();
+			}
+			else if (mode3DmustExit() == 1){
+				displayVictoire(getPlayerScore3D(), getComputerScore3D());
+				HAL_Delay(3000);
+				currentMode = Title;
+				initTitle();
+			}
+		}
+		//Badminton
+		if (currentMode == Badminton){
+			updateBadminton(distance);
+			if (exitB() == 1){
+				displayFin(getScoreBadminton());
+				HAL_Delay(3000);
+				currentMode = Title;
+				initTitle();
+			}
+		}
+		//Deux contre Deux
+		if (currentMode == DeuxContreDeux){
 		// Display the net only if the ball is near it.
-		if (mBall.yPos > (MAXWIDTH/2) - (2*FONT)
-				&& mBall.yPos < (MAXWIDTH/2) + (2*FONT))
+		if (mBall.xPos > (MAXWIDTH/2) - (2*FONT)
+				&& mBall.xPos < (MAXWIDTH/2) + (2*FONT))
 			drawNet();
 		// Display scores  either if they changed or if they are
 		// erase by the motion of the ball.
-		if ((mBall.yPos > 50 && mBall.yPos < 110
-				&& mBall.xPos > 20 && mBall.xPos < 100)
-				|| score_d_changed){
-			LCD_FillRect(50, 80, 130, 25, BLACK);
-			LCD_SetCursor(50, 80);
-			LCD_Printf("%i\r\n", score_d); // Player 1
+			//
+				
+
+		if(BallRectangle(mBall.xPos, mBall.yPos, 200, 10, 50, 50) || score_d_changed)
+			{
+				LCD_FillRect(240 - FONT, 30, 10, 20, LCD_Color565(0,17,114));
+				LCD_SetCursor(240 - FONT, 30);
+				LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+				LCD_Printf("%i\r\n", score_d); // Player 2
+			}
+			
+		if(BallRectangle(mBall.xPos, mBall.yPos, 60, 10, 50, 50) || score_g_changed)
+			{
+				LCD_FillRect(80 - FONT, 30, 10,  20, LCD_Color565(0,17,114));
+				LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+				LCD_SetCursor(80 - FONT, 30);
+				LCD_Printf("%i\r\n", score_g); // Player 1
+			}
+#if CONTROLLER
+		if (score_d_changed || score_g_changed)
+		{
+			transferBuffer[0] = 255;
+			transferBuffer[1] = (uint8_t) score_g;
+			transferBuffer[2] = (uint8_t) score_d;
+			//GPIOA->OTYPER &= ~(1 << 11);
+			HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
 		}
-		if ((mBall.yPos > 210 && mBall.yPos < 270
-				&& mBall.xPos > 20 && mBall.xPos < 100)
-				|| score_g_changed){
-			LCD_FillRect(50, 240, 130, 25, BLACK);
-			LCD_SetCursor(50, 240);
-			LCD_Printf("%i\r\n", score_g); // Player 2
-		}
+#endif
+		toggle ^= (score_d_changed || score_g_changed);
+		LCD_InvertDisplay(toggle);
 		score_g_changed = false;
 		score_d_changed = false;
 		// Measure distance
 		distance = ((float)pulse_width)/58.0;
 #if CONTROLLER
-		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
+		LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
 		placePongWithDistance(&mPade1, distance);
-		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+		LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(255,0,0));
 #else
-		LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,BLACK);
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
 		placePongWithDistance(&mPade2, distance);
-		LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(255,224,71));
 		transferBuffer[0] = 253;
-		transferBuffer[1] = (uint8_t) (mPade2.xPos);
+		transferBuffer[1] = (uint8_t) (mPade2.yPos);
+		//GPIOA->OTYPER &= ~(1 << 11);
 		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);	
 #endif
 	local_time = 0;
@@ -409,22 +602,22 @@ int main(void)
 #if CONTROLLER
 		if (receiveBuffer[0] == 253)
 		{
-			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,BLACK);
-			mPade2.xPos = receiveBuffer[1];
-			LCD_FillRect(mPade2.xPos,mPade2.yPos,PONGSIZE,FONT,WHITE);
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
+			mPade2.yPos = receiveBuffer[1];
+			LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(255,224,71));
 			flagReceived = 0;
 		}
 #else
 		if (receiveBuffer[0] == 254)
 		{
-				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
-				mPade1.xPos = receiveBuffer[3];
-				LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
+				mPade1.yPos = receiveBuffer[3];
+				LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(255,0,0));
 
-				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,BLACK);
-				mBall.xPos = receiveBuffer[1];
-				mBall.yPos = receiveBuffer[2]*2;
-				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,WHITE);
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,LCD_Color565(0,17,114));
+				mBall.yPos = receiveBuffer[1];
+				mBall.xPos = receiveBuffer[2]*2;
+				LCD_FillCircle(mBall.xPos, mBall.yPos,RBALL,LCD_Color565(0,255,33));
 		}		
 #endif
 		flagReceived = false;
@@ -433,24 +626,45 @@ int main(void)
 #if CONTROLLER
 		MoveBall();
 		transferBuffer[0] = 254;
-		transferBuffer[1] = (uint8_t) (mBall.xPos);
-		transferBuffer[2] = (uint8_t) (mBall.yPos/2);
-		transferBuffer[3] = (uint8_t)	mPade1.xPos;
-		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+		transferBuffer[1] = (uint8_t) (mBall.yPos);
+		transferBuffer[2] = (uint8_t) (mBall.xPos/2);
+		transferBuffer[3] = (uint8_t)	mPade1.yPos;
+		GPIOA->OTYPER &= ~(1 << 11);
+		//HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
 #endif
-		
+
+#if CONTROLLER==0
+	local_time = 0;
+	while (!flagReceived)
+	{
+		if (local_time == 50)
+			break;
+	}
+	if (flagReceived)
+	{
+
+		if (receiveBuffer[0] == 255)
+		{
+				score_g = receiveBuffer[1];
+				score_d = receiveBuffer[2];
+				score_g_changed = true;
+			  score_d_changed = true;
+		}		
+	flagReceived = false;
+	}
+	#endif	
 		
 //		mPade2 = MovePong(mPade2);		
 //		MoveBall();
-		
+//		
 //		// Control pong one (i.e. right):
-//		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,BLACK);
+//		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,LCD_Color565(0,17,114));
 //		placePongWithDistance(&mPade1, distance);
 //		LCD_FillRect(mPade1.xPos,mPade1.yPos,PONGSIZE,FONT,WHITE);
 //		
 //		//emulate player two (i.e. left):
 //		mPade2.xSpeed = (rand()%5-2);
-
+	}
 		HAL_Delay(25);
   }
   /* USER CODE END 3 */
@@ -526,11 +740,22 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 }
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART3)
+	{
 		flagReceived = true;
+		printf("Receive over\r\n");
+		for (int i = 0; i < RX_BUFFER_SIZE; i++)
+			printf("%i\r\n",receiveBuffer[i]); 
+	}
+		
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	if (huart->Instance == USART3)
+	{
+		printf("Transfert over\r\n");
 		flagTransmitted = true;
+		//GPIOA->OTYPER |= (1 << 11);
+	}
+		
 }
 
 void HAL_SYSTICK_Callback(void) {
