@@ -271,6 +271,93 @@ void placePongWithDistance(struct Tool* mPong, float distance){
 	// Place pong
 	mPong->xPos = normalisedDistance + FONT;
 }
+void displayDefaite(uint8_t score_g, uint8_t score_d)
+{
+		LCD_FillScreen(LCD_Color565(140,0,0));
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(BLACK,LCD_Color565(140,0,0));
+		LCD_SetTextSize(4);
+		LCD_Printf("X DEFAITE X\r\n");
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(90 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_g);
+
+		LCD_SetCursor(190 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,224,71), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_d);
+}
+
+void displayVictoire(uint8_t score_g, uint8_t score_d)
+{
+		//FONT
+		LCD_FillScreen(GREENYELLOW);
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(WHITE, GREENYELLOW);
+		LCD_SetTextSize(4);
+		LCD_Printf("!! BRAVO !!\r\n");
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+	
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(90 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_g);
+
+		LCD_SetCursor(190 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,224,71), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score_d);
+}
+void displayFin(uint8_t score)
+{
+		//FONT
+		LCD_FillScreen(LCD_Color565(0, 155, 255));
+		LCD_SetCursor(30, 30);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0, 155, 255));
+		LCD_SetTextSize(4);
+	  LCD_Printf(" ): FIN :(\r\n");
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+	
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, 255 + FONT, FONT/2, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35, 120, 255, 80, LCD_Color565(0,17,114));
+		LCD_FillRect(35 + 255, 120 - FONT/2, FONT/2, 80 + FONT, WHITE);
+		LCD_FillRect(35 - FONT/2, 120 + 80, 255 + FONT, FONT/2, WHITE);
+		
+		LCD_SetCursor(35 + FONT, 120 + FONT);
+		LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf(" Score Final:\r\n");
+		
+		LCD_SetCursor(130 + FONT, 160 + FONT);
+		LCD_SetTextColor(LCD_Color565(255,0,0), LCD_Color565(0,17,114));
+		LCD_SetTextSize(3);
+		LCD_Printf("%i\r\n", score);
+}
+
 
 /* USER CODE END 0 */
 
@@ -324,6 +411,25 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	//init3D();
+    		const char* intro[13] = {"ELE3312 - Project", "", "PONG-19", "", 
+			"Modern pong game", "Futuristic look", "", "Developed by : ", "", "Joseph Maheshe", "Vincent Therrien",
+			"", "December 3, 2020"
+		};
+		
+		int16_t ht = 16, top = 3, line = 0, lines = 13, scroll=0;
+		LCD_FillScreen(LCD_Color565(140,0,0));
+		LCD_SetTextSize(2);
+		LCD_SetTextColor(WHITE, LCD_Color565(140,0,0));
+		LCD_SetRotation(0);
+		while(line < lines)
+		{
+		LCD_SetCursor(0, (scroll + top) * ht);
+    LCD_VertScroll(top * ht, lines * ht, (++scroll) * ht);
+		LCD_Printf(intro[line]);
+    HAL_Delay(1000);
+    line++;
+		}
+		LCD_SetTextSize(3);
 	initTitle();
 	//drawBackPong(0.3, 25);
 	//drawInnerFrameWithPong(0.65, 35);

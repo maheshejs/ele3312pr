@@ -1,2 +1,5 @@
 project/MDK-ARM/project/
 project/Core/Src/MCUFRIEND_kbv.c
+project/MDK-ARM/project.uvguix.user
+project/MDK-ARM/project.uvoptx
+project/MDK-ARM/project.uvprojx
