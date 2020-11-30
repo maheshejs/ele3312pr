@@ -58,7 +58,7 @@
 /* USER CODE BEGIN PV */
 #define MAXHEIGHT 240
 #define MAXWIDTH 320
-#define FONT 10
+#define FONT 8
 #define PONGSIZE 50
 #define SPACE 20
 #define RBALL 5
@@ -562,7 +562,7 @@ int main(void)
 		if (currentMode == Badminton){
 			updateBadminton(distance);
 			if (exitB()){
-				displayScoreBad();
+				displayFin(getScoreBadminton());
 				HAL_Delay(3000);
 				currentMode = Title;
 				initTitle();
@@ -572,13 +572,13 @@ int main(void)
 		if (currentMode == Mode3D){
 			update3D(distance);
 			if (mode3DmustExit() == -1){
-				LCD_FillScreen(RED);
+				displayDefaite(getPlayerScore3D(), getComputerScore3D());
 				HAL_Delay(3000);
 				currentMode = Title;
 				initTitle();
 			}
 			else if (mode3DmustExit() == 1){
-				LCD_FillScreen(GREEN);
+				displayVictoire(getPlayerScore3D(), getComputerScore3D());
 				HAL_Delay(3000);
 				currentMode = Title;
 				initTitle();
