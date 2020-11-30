@@ -4,10 +4,10 @@ enum mode targetMode;
 uint16_t backgroundColour;
 
 void drawBorder(){
-	LCD_FillRect(0, 0, borderSize, H, WHITE);
-	LCD_FillRect(0, H - borderSize, W, borderSize, WHITE);
-	LCD_FillRect(W - borderSize, 0, borderSize, H, WHITE);
-	LCD_FillRect(0, 0, W, borderSize, WHITE);
+	LCD_FillRect(0, 0, borderSize, H, RED);
+	LCD_FillRect(0, H - borderSize, W, borderSize, RED);
+	LCD_FillRect(W - borderSize, 0, borderSize, H, RED);
+	LCD_FillRect(0, 0, W, borderSize, RED);
 }
 
 void initTitle(void){
@@ -19,7 +19,7 @@ void initTitle(void){
 	LCD_SetCursor(50, 30);
 	LCD_SetTextColor(WHITE, backgroundColour);
 	LCD_Printf("P O N G - 1 9");
-	LCD_FillRect(30, 60, W-60, 4, WHITE);
+	LCD_FillRect(30, 60, W-60, 4, RED);
 	// Nom des options
 	LCD_SetCursor(50, (0 * 40) + 80);
 	LCD_Printf("2 CONTRE 2");
@@ -37,7 +37,7 @@ void drawDots(){
 		LCD_FillCircle(30, (i * 40) + 90, 10, backgroundColour);
 		if (i == targetMode){
 			LCD_FillCircle(30, (i * 40) + 90, 10, LIGHTGREY);
-			LCD_FillCircle(30, (i * 40) + 90, 5, BLACK);
+			LCD_FillCircle(30, (i * 40) + 90, 5, GREEN);
 		}
 		else
 			LCD_FillCircle(30, (i * 40) + 90, 5, LIGHTGREY);
