@@ -291,3 +291,9 @@ int mode3DmustExit(){
 	if (score_front >= maxPoint)
 		return 1;
 }
+int getPlayerScore3D(){
+	return score_front;
+}
+int getComputerScore3D(){
+	return score_back;
+}

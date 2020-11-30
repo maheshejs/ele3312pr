@@ -57,6 +57,9 @@ void moveInnerPongAuto();
 void update3D(float d);
 float getYAuto(void);
 
+int getPlayerScore3D();
+int getComputerScore3D();
+
 // Return 0: Must not exit
 // Return -1: Lost
 // Return 1: Won
