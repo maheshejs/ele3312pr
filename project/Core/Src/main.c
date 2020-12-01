@@ -85,6 +85,7 @@ uint8_t score_g = 0;
 uint8_t score_d = 0;
 bool score_g_changed = true;
 bool score_d_changed = true;
+bool exitDeuxContreDeux = false;
 uint8_t toggle = 0;
 enum mode currentMode = Title;
 /* USER CODE END PV */
@@ -181,8 +182,8 @@ void InitGame()
 {
 	mBall.xPos = MAXWIDTH/2;
 	mBall.yPos = MAXHEIGHT/2;
-	mBall.xSpeed = 1;
-	mBall.ySpeed = 1;
+	mBall.xSpeed = 2;
+	mBall.ySpeed = 2;
 		     
 	mPade1.xPos = SPACE ;
 	mPade1.yPos = MAXHEIGHT/2-PONGSIZE/2;
@@ -193,6 +194,9 @@ void InitGame()
 	mPade2.yPos = MAXHEIGHT/2-PONGSIZE/2;
 	mPade2.xSpeed = 0;
 	mPade2.ySpeed = 0;
+	score_d = 0;
+	score_g = 0;
+	exitDeuxContreDeux  = false;
 }
 
 /** Transmit the already filled 'transferBuffer' array through
@@ -567,14 +571,49 @@ int main(void)
 			transferBuffer[0] = 255;
 			transferBuffer[1] = (uint8_t) score_g;
 			transferBuffer[2] = (uint8_t) score_d;
-			//GPIOA->OTYPER &= ~(1 << 11);
+//			GPIOA->OTYPER &= ~(1 << 11);
 			HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+//			while(!flagTransmitted);
+//			flagTransmitted = false;
+//			HAL_Delay(2);
+//			GPIOA->OTYPER |= (1 << 11);
 		}
 #endif
 		toggle ^= (score_d_changed || score_g_changed);
 		LCD_InvertDisplay(toggle);
+
+		if (score_g ==5)
+		{
+			LCD_InvertDisplay(false);
+#if CONTROLLER
+			  displayVictoire(score_g, score_d);
+#else
+				displayDefaite(score_g, score_d);
+#endif 
+				HAL_Delay(3000);
+				exitDeuxContreDeux = true;
+				currentMode = Title;
+				initTitle();
+		}
+		else if (score_d == 5)
+		{
+			LCD_InvertDisplay(false);
+#if CONTROLLER
+			  displayDefaite(score_g, score_d);
+#else
+				displayVictoire(score_g, score_d);
+#endif 
+				HAL_Delay(3000);
+			  exitDeuxContreDeux = true;
+				currentMode = Title;
+				initTitle();
+		}
+
+
 		score_g_changed = false;
 		score_d_changed = false;
+if(!exitDeuxContreDeux)
+{	
 		// Measure distance
 		distance = ((float)pulse_width)/58.0;
 #if CONTROLLER
@@ -587,8 +626,12 @@ int main(void)
 		LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(255,224,71));
 		transferBuffer[0] = 253;
 		transferBuffer[1] = (uint8_t) (mPade2.yPos);
-		//GPIOA->OTYPER &= ~(1 << 11);
-		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);	
+//		GPIOA->OTYPER &= ~(1 << 11);
+		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+//		while(!flagTransmitted);
+//			flagTransmitted = false;
+//			HAL_Delay(2);
+//			GPIOA->OTYPER |= (1 << 11);
 #endif
 	local_time = 0;
 	while (!flagReceived)
@@ -629,8 +672,12 @@ int main(void)
 		transferBuffer[1] = (uint8_t) (mBall.yPos);
 		transferBuffer[2] = (uint8_t) (mBall.xPos/2);
 		transferBuffer[3] = (uint8_t)	mPade1.yPos;
-		GPIOA->OTYPER &= ~(1 << 11);
-		//HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+//		GPIOA->OTYPER &= ~(1 << 11);
+		HAL_UART_Transmit_DMA(&huart3, transferBuffer, TX_BUFFER_SIZE);
+//		while(!flagTransmitted);
+//			flagTransmitted = false;
+//			HAL_Delay(2);
+//			GPIOA->OTYPER |= (1 << 11);
 #endif
 
 #if CONTROLLER==0
@@ -665,6 +712,8 @@ int main(void)
 //		//emulate player two (i.e. left):
 //		mPade2.xSpeed = (rand()%5-2);
 	}
+}
+		
 		HAL_Delay(25);
   }
   /* USER CODE END 3 */
@@ -743,9 +792,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	{
 		flagReceived = true;
 		printf("Receive over\r\n");
-		for (int i = 0; i < RX_BUFFER_SIZE; i++)
-			printf("%i\r\n",receiveBuffer[i]); 
+	for (int i = 0; i < RX_BUFFER_SIZE; i++)
+		{
+		  printf("%i\r\n",receiveBuffer[i]);
+		}
 	}
+
 		
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
@@ -753,7 +805,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	{
 		printf("Transfert over\r\n");
 		flagTransmitted = true;
-		//GPIOA->OTYPER |= (1 << 11);
 	}
 		
 }
