@@ -27,7 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #define ARM_MATH_CM4
-#define CONTROLLER 0
+#define CONTROLLER 1
 #include "arm_math.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -511,6 +511,20 @@ int main(void)
 					LCD_SetCursor(80 - FONT, 30);
 					LCD_Printf("%i\r\n", score_g); // Player 2
 				}
+				else if (currentMode == UnJoueur)
+				{
+					LCD_FillScreen(LCD_Color565(0,17,114));
+					BorderGame();
+					InitGame();
+					LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT, PONGSIZE,LCD_Color565(255,0,0));
+					LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT, PONGSIZE,LCD_Color565(255,224,71));
+					LCD_SetCursor(240 - FONT, 30);
+					LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+					LCD_Printf("%i\r\n", score_d); // Player 1
+					LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+					LCD_SetCursor(80 - FONT, 30);
+					LCD_Printf("%i\r\n", score_g); // Player 2
+				}
 			}
 		}
 		// 3D
@@ -539,6 +553,65 @@ int main(void)
 				initTitle();
 			}
 		}
+		// Un joueur
+		if (currentMode == UnJoueur){
+			if (mBall.xPos > (MAXWIDTH/2) - (2*FONT)
+				&& mBall.xPos < (MAXWIDTH/2) + (2*FONT))
+			drawNet();
+		if(BallRectangle(mBall.xPos, mBall.yPos, 200, 10, 50, 50) || score_d_changed)
+			{
+				LCD_FillRect(240 - FONT, 30, 10, 20, LCD_Color565(0,17,114));
+				LCD_SetCursor(240 - FONT, 30);
+				LCD_SetTextColor(WHITE,LCD_Color565(0,17,114));
+				LCD_Printf("%i\r\n", score_d); // Player 2
+			}
+			
+		if(BallRectangle(mBall.xPos, mBall.yPos, 60, 10, 50, 50) || score_g_changed)
+			{
+				LCD_FillRect(80 - FONT, 30, 10,  20, LCD_Color565(0,17,114));
+				LCD_SetTextColor(WHITE, LCD_Color565(0,17,114));
+				LCD_SetCursor(80 - FONT, 30);
+				LCD_Printf("%i\r\n", score_g); // Player 1
+			}
+			toggle ^= (score_d_changed || score_g_changed);
+			LCD_InvertDisplay(toggle);
+			if (score_g ==5)
+		{
+			LCD_InvertDisplay(false);
+			  displayVictoire(score_g, score_d);
+				HAL_Delay(3000);
+				exitDeuxContreDeux = true;
+				currentMode = Title;
+				initTitle();
+		}
+			else if (score_d == 5)
+			{
+				LCD_InvertDisplay(false);
+				displayDefaite(score_g, score_d);
+				HAL_Delay(3000);
+				exitDeuxContreDeux = true;
+				currentMode = Title;
+				initTitle();
+			}
+			score_g_changed = false;
+		score_d_changed = false;
+if(!exitDeuxContreDeux)
+{
+		// Measure distance
+		distance = ((float)pulse_width)/58.0;
+		LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
+		placePongWithDistance(&mPade1, distance);
+		LCD_FillRect(mPade1.xPos,mPade1.yPos,FONT,PONGSIZE,LCD_Color565(255,0,0));
+		}
+		MoveBall();
+		
+		// Ajouter le controle automatique de mPade2
+		
+	}
+		
+	
+	
+	
 		//Deux contre Deux
 		if (currentMode == DeuxContreDeux){
 		// Display the net only if the ball is near it.
@@ -609,7 +682,7 @@ int main(void)
 				initTitle();
 		}
 
-
+//
 		score_g_changed = false;
 		score_d_changed = false;
 if(!exitDeuxContreDeux)
