@@ -606,6 +606,22 @@ if(!exitDeuxContreDeux)
 		MoveBall();
 		
 		// Ajouter le controle automatique de mPade2
+		float delta = mPade2.yPos - mBall.yPos;
+		printf("%f\n\r", delta);
+		int motion = 0;
+		if (delta > 0 && mBall.xPos > 100){
+			motion = -3;
+		}
+		else if (delta < 0 && mBall.xPos > 100){
+			motion = 3;
+		}
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(0,17,114));
+		mPade2.yPos += motion;
+		if (mPade2.yPos < 10)
+			mPade2.yPos = FONT;
+		if (mPade2.yPos + PONGSIZE > 240 - FONT)
+			mPade2.yPos = 240 - FONT - PONGSIZE;
+		LCD_FillRect(mPade2.xPos,mPade2.yPos,FONT,PONGSIZE,LCD_Color565(255,224,71));
 		
 	}
 		
